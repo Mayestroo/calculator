@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="uz" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>LED Chiroq Tannarxi — Telegram Mini App</title>
+  <meta name="description" content="Tayyor LED chiroqlarning tannarxi va sotish narxini xom-ashyo narxlari asosida tezkor hisoblash Telegram Mini App ilovasi">
+
+  <!-- Google Fonts: Outfit & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">💡</div>
+      <div class="brand-info">
+        <h1>LED Tannarx</h1>
+        <p>Kalkulyatsiya tizimi</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="role-badge" class="role-badge admin" title="Rolni almashtirish uchun bosing">
+        🛡️ Admin
+      </button>
+      <button id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Mavzuni almashtirish">
+        ☀️
+      </button>
+    </div>
+  </header>
+
+  <main class="app-container">
+
+    <!-- ====================================================================
+         TAB 1: HISOBLASH (CALCULATOR)
+         ==================================================================== -->
+    <section id="tab-calc" class="tab-content active">
+
+      <!-- Realtime KPI Card -->
+      <div class="result-card">
+        <div class="kpi-main">
+          <div class="kpi-label">1 dona chiroq tannarxi</div>
+          <div id="res-tannarx-usd" class="kpi-price">$0.00</div>
+          <div id="res-tannarx-uzs" class="kpi-uzs">0 soʻm</div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-box highlight">
+            <div class="box-label">Sotish narxi (Foyda bilan)</div>
+            <div id="res-sotish-usd" class="box-value">$0.00</div>
+            <div id="res-sotish-uzs" class="box-sub">0 soʻm</div>
+          </div>
+          <div class="kpi-box">
+            <div class="box-label">Partiya foydasi (<span id="res-batch-qty-label">10 dona</span>)</div>
+            <div id="res-batch-foyda" class="box-value" style="color: #38bdf8;">$0.00</div>
+            <div id="res-batch-foyda-uzs" class="box-sub">0 soʻm</div>
+          </div>
+        </div>
+
+        <!-- Quick Settings Mini-Bar -->
+        <div class="settings-bar">
+          <div class="setting-pill">
+            <label for="setting-rate">Kurs ($)</label>
+            <input type="number" id="setting-rate" value="12800" step="50">
+          </div>
+          <div class="setting-pill">
+            <label for="setting-brak">Brak %</label>
+            <input type="number" id="setting-brak" value="3" step="0.5">
+          </div>
+          <div class="setting-pill">
+            <label for="setting-profit">Foyda %</label>
+            <input type="number" id="setting-profit" value="25" step="1">
+          </div>
+          <div class="setting-pill">
+            <label for="setting-batch">Partiya</label>
+            <input type="number" id="setting-batch" value="10" step="1" min="1">
+          </div>
+        </div>
+
+        <!-- Xarajatlar jadvali (Breakdown) -->
+        <table class="breakdown-table">
+          <thead>
+            <tr>
+              <th>Xarajat moddasi</th>
+              <th>Summa ($)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Profil (korpus)</td>
+              <td id="bd-korpus">$0.00</td>
+            </tr>
+            <tr>
+              <td>LED lenta</td>
+              <td id="bd-led">$0.00</td>
+            </tr>
+            <tr>
+              <td>Quvvat bloki</td>
+              <td id="bd-blok">$0.00</td>
+            </tr>
+            <tr>
+              <td>Qoʻshimcha sarflar</td>
+              <td id="bd-extra">$0.00</td>
+            </tr>
+            <tr>
+              <td>Texnologik brak</td>
+              <td id="bd-brak">$0.00</td>
+            </tr>
+            <tr class="total-row">
+              <td>Jami tannarx:</td>
+              <td id="bd-total">$0.00</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <button id="btn-save-calc" class="btn btn-primary">
+            💾 Saqlash
+          </button>
+          <button id="btn-share-calc" class="btn btn-success">
+            📤 Ulashish
+          </button>
+        </div>
+        <div style="margin-top: 8px;">
+          <button id="btn-receipt-calc" class="btn btn-secondary btn-full">
+            🧾 Hisob-varaqasi (Chek / PDF)
+          </button>
+        </div>
+      </div>
+
+      <!-- 1. KORPUS CARD -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="icon-badge icon-blue">1</span>
+            Korpus (Profil)
+          </div>
+          <span class="card-subtitle">PVC alyumin model & rang</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="korpus-model-select">Modelni tanlang</label>
+          <div class="select-wrapper">
+            <select id="korpus-model-select" class="select-control"></select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Mavjud ranglar</label>
+          <div id="korpus-color-chips" class="chip-container"></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="korpus-length-input">Uzunlik (metr)</label>
+            <input type="number" id="korpus-length-input" class="form-control" value="1.0" step="0.1" min="0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="korpus-price-input">
+              1 metr narxi ($)
+              <span class="label-hint">Tahrirlash</span>
+            </label>
+            <input type="number" id="korpus-price-input" class="form-control" step="0.01" min="0">
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. LED LENTA CARD -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="icon-badge icon-amber">2</span>
+            LED Lenta
+          </div>
+          <span class="card-subtitle">12V/24V/220V, COB, 6500K</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="led-type-select">Lenta turini tanlang</label>
+          <div class="select-wrapper">
+            <select id="led-type-select" class="select-control"></select>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="led-qty-input">
+              Miqdor (<span id="led-unit-label">metr</span>)
+            </label>
+            <input type="number" id="led-qty-input" class="form-control" value="1.0" step="0.1" min="0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="led-price-input">
+              Tan narx ($)
+              <span class="label-hint">Tahrirlash</span>
+            </label>
+            <input type="number" id="led-price-input" class="form-control" step="0.01" min="0">
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. BLOK CARD -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="icon-badge icon-emerald">3</span>
+            Quvvat Bloki (Drayver)
+          </div>
+          <span id="blok-spec-info" class="card-subtitle">60W, 100W, 200W, 300W</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="blok-type-select">Blok turini tanlang</label>
+          <div class="select-wrapper">
+            <select id="blok-type-select" class="select-control"></select>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="blok-qty-input">Soni (dona)</label>
+            <input type="number" id="blok-qty-input" class="form-control" value="1" step="1" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="blok-price-input">
+              1 dona narxi ($)
+              <span class="label-hint">Tahrirlash</span>
+            </label>
+            <input type="number" id="blok-price-input" class="form-control" step="0.01" min="0">
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. QO'SHIMCHA XARAJATLAR CARD -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="icon-badge icon-rose">4</span>
+            Qoʻshimcha Xarajatlar
+          </div>
+          <span class="card-subtitle">Qopqoq, sim, qadoq, ish haqi</span>
+        </div>
+
+        <div id="extra-expenses-list"></div>
+
+        <button type="button" id="btn-add-extra" class="btn-add-extra">
+          ➕ Yangi xarajat qoʻshish
+        </button>
+      </div>
+
+    </section>
+
+
+    <!-- ====================================================================
+         TAB 2: SAQLANGANLAR VA TARIX (HISTORY)
+         ==================================================================== -->
+    <section id="tab-history" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="icon-badge icon-cyan">📜</span>
+            Saqlangan Hisob-Kitoblar
+          </div>
+          <span class="card-subtitle">Oldingi hisoblar arxivi</span>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 14px;">
+          Istalgan hisobni ochib qayta tahrirlashingiz yoki mijozga kvitansiya qilib yuborishingiz mumkin.
+        </p>
+
+        <div id="saved-calculations-list"></div>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         TAB 3: SOZLAMALAR (SETTINGS)
+         ==================================================================== -->
+    <section id="tab-settings" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="icon-badge icon-indigo">⚙️</span>
+            Tizim Sozlamalari
+          </div>
+          <span class="card-subtitle">Standart parametrlar</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="set-default-rate">AQSH Dollari kursi (Soʻm)</label>
+          <input type="number" id="set-default-rate" class="form-control" placeholder="12800">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="set-default-brak">Standart texnologik brak foizi (%)</label>
+          <input type="number" id="set-default-brak" class="form-control" placeholder="3" step="0.5">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="set-default-profit">Standart tavsiya etilgan foyda foizi (%)</label>
+          <input type="number" id="set-default-profit" class="form-control" placeholder="25" step="1">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="set-default-batch">Standart partiya soni (dona)</label>
+          <input type="number" id="set-default-batch" class="form-control" placeholder="10" step="1">
+        </div>
+
+        <button id="btn-save-global-settings" class="btn btn-primary btn-full" style="margin-top: 10px;">
+          💾 Sozlamalarni Saqlash
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="icon-badge icon-blue">ℹ️</span>
+            Dastur haqida
+          </div>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6;">
+          <strong>LED Chiroq Tannarxi Mini App</strong> — LED chiroq ishlab chiqaruvchi korxonalar uchun maxsus ishlab chiqilgan.
+          Ushbu ilova yordamida har bir xom-ashyo (korpus, lenta, drayver) narxi asosida mahsulot tannarxi hamda foyda bilan sotish narxi bir zumda hisoblanadi.
+        </p>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         TAB 4: ADMIN PANEL
+         ==================================================================== -->
+    <section id="tab-admin" class="tab-content">
+      
+      <!-- Stats -->
+      <div class="admin-stats">
+        <div class="stat-card">
+          <div id="stat-korpus-count" class="stat-num">0</div>
+          <div class="stat-label">Korpus profillar</div>
+        </div>
+        <div class="stat-card">
+          <div id="stat-led-count" class="stat-num">0</div>
+          <div class="stat-label">LED lentalar</div>
+        </div>
+        <div class="stat-card">
+          <div id="stat-blok-count" class="stat-num">0</div>
+          <div class="stat-label">Quvvat bloklari</div>
+        </div>
+      </div>
+
+      <!-- Materials Management Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="icon-badge icon-blue">📦</span>
+            Xom-Ashyo Narxlari Bazasi
+          </div>
+          <button id="btn-add-material" class="btn btn-primary btn-sm">
+            ➕ Yangi qoʻshish
+          </button>
+        </div>
+
+        <!-- Excel Actions -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+          <label id="btn-import-excel-label" class="btn btn-secondary btn-sm" style="cursor: pointer;">
+            📥 Excel yuklash (.xlsx)
+            <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" style="display: none;">
+          </label>
+          <button id="btn-export-excel" class="btn btn-secondary btn-sm">
+            📤 Excel yuklab olish
+          </button>
+        </div>
+
+        <!-- Search & Filter -->
+        <div class="form-group">
+          <input type="text" id="admin-search-input" class="form-control" placeholder="🔍 Xom-ashyo qidirish (nomi yoki parametri)...">
+        </div>
+
+        <div class="sub-tabs">
+          <button class="sub-tab-btn admin-cat-tab active" data-cat="all">Barchasi</button>
+          <button class="sub-tab-btn admin-cat-tab" data-cat="korpus">Korpuslar</button>
+          <button class="sub-tab-btn admin-cat-tab" data-cat="led">LED lentalar</button>
+          <button class="sub-tab-btn admin-cat-tab" data-cat="blok">Bloklar</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Turi</th>
+                <th>Nomi</th>
+                <th>Xususiyati / Rangi</th>
+                <th>Birlik</th>
+                <th>Narx ($)</th>
+                <th style="text-align: right;">Amallar</th>
+              </tr>
+            </thead>
+            <tbody id="admin-materials-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Price Change History -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="icon-badge icon-amber">🕒</span>
+            Narx Oʻzgarishlari Tarixi
+          </div>
+        </div>
+        <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 10px;">
+          Kim, qachon, qaysi xom-ashyo narxini oʻzgartirgani jurnali
+        </p>
+
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Sana</th>
+                <th>Tovar nomi</th>
+                <th>Eski narx</th>
+                <th>Yangi narx</th>
+                <th>Masʼul</th>
+              </tr>
+            </thead>
+            <tbody id="admin-history-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Users & Access Whitelist -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="icon-badge icon-indigo">👥</span>
+            Foydalanuvchilar va Rollar
+          </div>
+        </div>
+        <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 12px;">
+          Telegram ID orqali ruxsat berilgan admin va menejerlar
+        </p>
+
+        <div id="admin-users-list" style="margin-bottom: 14px;"></div>
+
+        <div style="background: rgba(255,255,255,0.03); border: 1px dashed var(--border-subtle); border-radius: var(--radius-md); padding: 12px;">
+          <div style="font-size: 0.8rem; font-weight: 700; margin-bottom: 8px;">Yangi foydalanuvchi qoʻshish:</div>
+          <div class="grid-2" style="margin-bottom: 8px;">
+            <input type="text" id="new-user-id" class="form-control" placeholder="Telegram ID (masalan: 12345678)">
+            <input type="text" id="new-user-name" class="form-control" placeholder="Ismi / Lavozimi">
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <div class="select-wrapper" style="flex: 1;">
+              <select id="new-user-role" class="select-control">
+                <option value="menejer">Menejer (Sotuvchi)</option>
+                <option value="admin">Admin (Egasi, Texnolog)</option>
+              </select>
+            </div>
+            <button id="btn-add-user" class="btn btn-primary btn-sm">Qoʻshish</button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="bottom-nav">
+    <div class="nav-inner">
+      <button id="nav-calc" class="nav-item active" data-tab="calc">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>
+        <span>Hisoblash</span>
+      </button>
+
+      <button id="nav-history" class="nav-item" data-tab="history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Saqlanganlar</span>
+      </button>
+
+      <button id="nav-settings" class="nav-item" data-tab="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>Sozlamalar</span>
+      </button>
+
+      <button id="nav-admin-tab" class="nav-item" data-tab="admin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Admin</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ====================================================================
+       MODALS
+       ==================================================================== -->
+
+  <!-- 1. Modal: Hisobni saqlash -->
+  <div id="modal-save-calc" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">💾 Hisob-kitobni saqlash</div>
+        <button class="modal-close" aria-label="Yopish">✕</button>
+      </div>
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label class="form-label" for="save-calc-title">Hisob nomi</label>
+        <input type="text" id="save-calc-title" class="form-control" placeholder="Masalan: 100/75 PC oq + COB LED + 60W">
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-secondary btn-modal-cancel" style="flex: 1;">Bekor qilish</button>
+        <button id="btn-confirm-save-calc" class="btn btn-primary" style="flex: 1;">Saqlash</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Modal: Telegramga ulashish -->
+  <div id="modal-share" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">📤 Natijani Ulashish</div>
+        <button class="modal-close" aria-label="Yopish">✕</button>
+      </div>
+      <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 10px;">
+        Hisob-kitob xabari Telegram uchun formatlandi:
+      </p>
+      <textarea id="share-text-content" class="form-control" rows="10" readonly style="font-family: monospace; font-size: 0.8rem; margin-bottom: 14px;"></textarea>
+      <div style="display: flex; gap: 10px;">
+        <button id="btn-copy-share" class="btn btn-secondary" style="flex: 1;">
+          📋 Nusxalash
+        </button>
+        <button id="btn-tg-direct-share" class="btn btn-primary" style="flex: 1;">
+          ✈️ Telegramga
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Modal: Chek / Kvitansiya -->
+  <div id="modal-receipt" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">🧾 Mahsulot Hisob-Varagʻi</div>
+        <button class="modal-close" aria-label="Yopish">✕</button>
+      </div>
+      <div id="receipt-content-body"></div>
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button class="btn btn-secondary btn-modal-cancel" style="flex: 1;">Yopish</button>
+        <button id="btn-print-receipt" class="btn btn-primary" style="flex: 1;">🖨️ Chop etish / PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Modal: Xom-ashyo qo'shish / tahrirlash -->
+  <div id="modal-material-edit" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div id="mat-modal-title" class="modal-title">Xom-Ashyoni Tahrirlash</div>
+        <button class="modal-close" aria-label="Yopish">✕</button>
+      </div>
+      <input type="hidden" id="mat-id">
+      
+      <div class="form-group">
+        <label class="form-label" for="mat-category">Kategoriya</label>
+        <div class="select-wrapper">
+          <select id="mat-category" class="select-control">
+            <option value="korpus">Korpus (Profil)</option>
+            <option value="led">LED Lenta</option>
+            <option value="blok">Quvvat Bloki (Drayver)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="mat-name">Mahsulot Nomi</label>
+        <input type="text" id="mat-name" class="form-control" placeholder="Masalan: 100/75 PC yoki 60W Blok">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="mat-spec">Xususiyati / Rangi</label>
+        <input type="text" id="mat-spec" class="form-control" placeholder="Masalan: OQ MATT yoki 6500K 12V">
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" for="mat-unit">Birlik</label>
+          <input type="text" id="mat-unit" class="form-control" placeholder="metr yoki dona">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="mat-price">Tan Narxi ($)</label>
+          <input type="number" id="mat-price" class="form-control" step="0.01" placeholder="2.50">
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 16px;">
+        <button class="btn btn-secondary btn-modal-cancel" style="flex: 1;">Bekor qilish</button>
+        <button id="btn-modal-save-material" class="btn btn-primary" style="flex: 1;">Saqlash</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/calculator.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: led-tannarx-webapp
+    env: node
+    plan: free
+    buildCommand: npm install && npm run seed
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: BOT_TOKEN
+        sync: false
+      - key: WEBAPP_URL
+        sync: false
