@@ -1,22 +1,20 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install python and build tools for native compilation if required
-RUN apk add --no-cache python3 make g++
+# Install build dependencies for native compilation (python3, make, g++)
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production || npm install --production
+# Install production dependencies
+RUN npm install --omit=dev
 
-# Copy application code
+# Copy application source code
 COPY . .
-
-# Run initial seed if database doesn't exist yet
-RUN node seed.js
 
 # Expose port
 EXPOSE 3000
@@ -24,5 +22,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV NODE_ENV=production
 
-# Start application
+# Start application (server.js automatically runs initDatabase and runSeed at runtime)
 CMD ["npm", "start"]
