@@ -8,30 +8,41 @@ Telegram Mini App ishlashi uchun **HTTPS (SSL)** majburiy talab qilinadi. Quyida
 
 **Render.com** har oy bepul 750 soat ishchi vaqt va avtomatik bepul `https://...onrender.com` SSL domen beradi.
 
-### 1-qadam: Kodni GitHub'ga yuklash
+### 🐘 1-qadam: Neon.tech da Bepul PostgreSQL baza ochish (1 daqiqada)
+1. [Neon.tech](https://neon.tech) saytiga kiring va GitHub yoki Google orqali kiring.
+2. **"Create Project"** tugmasini bosing:
+   - Project name: `led-tannarx`
+   - Region: `Frankfurt (eu-central-1)` (Oʻzbekistonga eng tez server)
+3. Dashboardda sizga darhol **Connection string** beriladi, masalan:
+   ```
+   postgresql://neondb_owner:parol@ep-xyz.eu-central-1.aws.neon.tech/neondb?sslmode=require
+   ```
+4. Ushbu havolani nusxalab oling (Copy). Bu sizning `DATABASE_URL` qiymatingiz boʻladi.
+
+---
+
+### 2-qadam: Kodni GitHub'ga yuklash
 Terminalda (yoki VS Code / Git da):
 ```bash
-git init
 git add .
-git commit -m "Initial commit for LED Tannarx Mini App"
-git branch -M main
-git remote add origin https://github.com/SIZNING_USERNAMINGIZ/led-tannarx.git
+git commit -m "feat: add Neon.tech PostgreSQL cloud support"
 git push -u origin main
 ```
 
-### 2-qadam: Render.com da yangi Web Service yaratish
+### 3-qadam: Render.com da yangi Web Service yaratish
 1. [Render.com](https://render.com) saytiga kiring va GitHub orqali roʻyxatdan oʻting.
 2. **"New +"** tugmasini bosib, **"Web Service"** ni tanlang.
 3. GitHub repozitoriyingizni tanlang (`led-tannarx`).
 4. Quyidagi parametrlarni kiriting:
    - **Name:** `led-tannarx` (yoki ixtiyoriy nom)
-   - **Region:** `Frankfurt (EU Central)` yoki `Singapore` (Oʻzbekistonga eng yaqini)
+   - **Region:** `Frankfurt (EU Central)`
    - **Branch:** `main`
    - **Runtime:** `Node`
    - **Build Command:** `npm install && npm run seed`
    - **Start Command:** `npm start`
    - **Instance Type:** `Free` ($0/month)
 5. **Environment Variables** (Muhit oʻzgaruvchilari) boʻlimiga kiring va qoʻshing:
+   - `DATABASE_URL`: Neon.tech dan nusxalangan havola
    - `BOT_TOKEN`: Telegram bot tokeningiz (masalan: `712345678:AA...`)
    - `WEBAPP_URL`: Render sizga beradigan domen (masalan: `https://led-tannarx.onrender.com`)
 6. **"Deploy Web Service"** tugmasini bosing!

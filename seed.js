@@ -1,20 +1,16 @@
 const { db, initDatabase } = require('./db');
 
-function runSeed() {
-  initDatabase();
+async function runSeed() {
+  await initDatabase();
 
-  const count = db.prepare('SELECT COUNT(*) as cnt FROM materials').get().cnt;
+  const countRow = await db.get('SELECT COUNT(*) as cnt FROM materials');
+  const count = countRow ? parseInt(countRow.cnt) : 0;
   if (count > 0) {
-    console.log(`Database already contains ${count} materials. Skipping seed.`);
+    console.log(`Bazada allaqachon ${count} ta xom-ashyo mavjud. Seed oʻtkazib yuborildi.`);
     return;
   }
 
-  console.log('Seeding initial materials and settings from Excel tables...');
-
-  const insertMaterial = db.prepare(`
-    INSERT INTO materials (category, name, spec, unit, price)
-    VALUES (?, ?, ?, ?, ?)
-  `);
+  console.log('Xom-ashyolar va tizim sozlamalari bazaga yuklanmoqda...');
 
   const materialsData = [
     // 1. KORPUS (PVC profillar va ranglari)
@@ -80,44 +76,68 @@ function runSeed() {
     { category: 'blok', name: '250 VT SIMSIZ, MILTILLAMAYDI, SIM BILAN ULANG', spec: '250W Simsiz / Miltillamaydi', unit: 'dona', price: 3.42 }
   ];
 
-  const insertMany = db.transaction((items) => {
-    for (const item of items) {
-      insertMaterial.run(item.category, item.name, item.spec, item.unit, item.price);
-    }
-  });
-
-  insertMany(materialsData);
+  for (const item of materialsData) {
+    await db.run(
+      'INSERT INTO materials (category, name, spec, unit, price) VALUES (?, ?, ?, ?, ?)',
+      [item.category, item.name, item.spec, item.unit, item.price]
+    );
+  }
 
   // Settings
-  const insertSetting = db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`);
+  const defaultSettings = [
+    ['dollar_kursi', '12800'],
+    ['brak_percent', '3'],
+    ['profit_percent', '25'],
+    ['batch_quantity', '10'],
+    ['admin_ids', JSON.stringify(['admin', 'demo_admin', '54321'])],
+    ['extra_template', JSON.stringify([
+      { id: 'ext-1', name: 'Yon qopqoqlar (zaglushka, juft)', qty: 1, price: 0.30, unit: 'juft' },
+      { id: 'ext-2', name: 'Sim va vilka (1.5 metrli)', qty: 1, price: 0.45, unit: 'dona' },
+      { id: 'ext-3', name: 'Qadoqlash (korobka va plyonka)', qty: 1, price: 0.35, unit: 'dona' },
+      { id: 'ext-4', name: 'Yigʻish xizmati (ish haqi)', qty: 1, price: 1.20, unit: 'xizmat' },
+      { id: 'ext-5', name: 'Elektr energiyasi va amortizatsiya', qty: 1, price: 0.20, unit: 'dona' }
+    ])]
+  ];
 
-  insertSetting.run('dollar_kursi', '12800');
-  insertSetting.run('brak_percent', '3');
-  insertSetting.run('profit_percent', '25');
-  insertSetting.run('batch_quantity', '10');
-  insertSetting.run('admin_ids', JSON.stringify(['admin', 'demo_admin', '54321']));
-  insertSetting.run('extra_template', JSON.stringify([
-    { id: 'ext-1', name: 'Yon qopqoqlar (zaglushka, juft)', qty: 1, price: 0.30, unit: 'juft' },
-    { id: 'ext-2', name: 'Sim va vilka (1.5 metrli)', qty: 1, price: 0.45, unit: 'dona' },
-    { id: 'ext-3', name: 'Qadoqlash (korobka va plyonka)', qty: 1, price: 0.35, unit: 'dona' },
-    { id: 'ext-4', name: 'Yigʻish xizmati (ish haqi)', qty: 1, price: 1.20, unit: 'xizmat' },
-    { id: 'ext-5', name: 'Elektr energiyasi va amortizatsiya', qty: 1, price: 0.20, unit: 'dona' }
-  ]));
+  for (const [key, value] of defaultSettings) {
+    if (db.isPostgres) {
+      await db.run(
+        'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value',
+        [key, value]
+      );
+    } else {
+      await db.run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, value]);
+    }
+  }
 
   // Default Users
-  const insertUser = db.prepare(`
-    INSERT OR REPLACE INTO users (telegram_id, name, username, role, is_allowed)
-    VALUES (?, ?, ?, ?, ?)
-  `);
+  const defaultUsers = [
+    ['demo_admin', 'Bosh Admin (Egasi)', 'tannarx_admin', 'admin', 1],
+    ['demo_manager', 'Sotuv Menejeri', 'menejer_user', 'menejer', 1]
+  ];
 
-  insertUser.run('demo_admin', 'Bosh Admin (Egasi)', 'tannarx_admin', 'admin', 1);
-  insertUser.run('demo_manager', 'Sotuv Menejeri', 'menejer_user', 'menejer', 1);
+  for (const [tgId, name, uname, role, allowed] of defaultUsers) {
+    if (db.isPostgres) {
+      await db.run(`
+        INSERT INTO users (telegram_id, name, username, role, is_allowed)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT (telegram_id) DO UPDATE SET
+          name = EXCLUDED.name,
+          username = EXCLUDED.username
+      `, [tgId, name, uname, role, allowed]);
+    } else {
+      await db.run(`
+        INSERT OR REPLACE INTO users (telegram_id, name, username, role, is_allowed)
+        VALUES (?, ?, ?, ?, ?)
+      `, [tgId, name, uname, role, allowed]);
+    }
+  }
 
-  console.log(`Seeding finished successfully! Added ${materialsData.length} raw material records.`);
+  console.log(`Baza muvaffaqiyatli toʻldirildi! Jami ${materialsData.length} ta xom-ashyo kiritildi.`);
 }
 
 if (require.main === module) {
-  runSeed();
+  runSeed().catch(console.error);
 }
 
 module.exports = { runSeed };
