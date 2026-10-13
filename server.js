@@ -8,7 +8,8 @@ const xlsx = require('xlsx');
 const { db, initDatabase, isPostgres } = require('./db');
 const { runSeed } = require('./seed');
 
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env.local') });
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3000;

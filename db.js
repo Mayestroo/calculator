@@ -1,9 +1,10 @@
 const path = require('path');
 const fs = require('fs');
 
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env.local') });
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const DATABASE_URL = process.env.DATABASE_URL || '';
+const DATABASE_URL = process.env.DATABASE_URL || process.env.DATABASE_URL_UNPOOLED || '';
 const isPostgres = Boolean(DATABASE_URL && (DATABASE_URL.startsWith('postgres://') || DATABASE_URL.startsWith('postgresql://')));
 
 let sqliteDb = null;
